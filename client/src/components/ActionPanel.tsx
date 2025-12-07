@@ -110,7 +110,7 @@ const ActionPanel: React.FC<ActionPanelProps> = ({ gameState, onAction }) => {
                 onClick={handleSubmit}
                 disabled={isSubmitting || (!canSpeak && !canVote)}
                 className={`
-            mt-4 w-full py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all
+            mt-4 w-full py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all shrink-0
             ${isSubmitting || (!canSpeak && !canVote)
                         ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                         : 'bg-cyber-accent text-cyber-900 hover:bg-sky-400 shadow-[0_0_20px_rgba(14,165,233,0.3)]'

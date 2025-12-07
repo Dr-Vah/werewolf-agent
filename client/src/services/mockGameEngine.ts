@@ -10,7 +10,7 @@
       * 接收人类操作接口 `sendHumanAction`（当前仅记录日志并打印）。
 */
 
-import { GameState, Phase, Role, LogEntry, Player, AgentDecision } from '../types';
+import { GameState, Phase, Role, LogEntry, Player, AgentDecision, GameMeta } from '../types';
 
 // Helper to generate initial players
 const generatePlayers = (): Player[] => {
@@ -39,6 +39,31 @@ const generatePlayers = (): Player[] => {
     suspicionScore: 0,
     avatarUrl: `https://picsum.photos/seed/${i + 50}/100/100`
   }));
+};
+
+// >>> NEW FEATURE: Mock Data Generation for Game Lists (Spectator/Replay) <<<
+const generateMockGames = (count: number, status: 'LIVE' | 'FINISHED'): GameMeta[] => {
+  return Array.from({ length: count }, (_, i) => ({
+    id: `${status === 'LIVE' ? 'live' : 'rep'}-${1000 + i}`,
+    title: status === 'LIVE' ? `Qualifier Group ${String.fromCharCode(65+i)}` : `Finals Match ${2024 - i}`,
+    status: status,
+    day: status === 'LIVE' ? Math.floor(Math.random() * 5) + 1 : Math.floor(Math.random() * 4) + 3,
+    players: Array.from({length: 9}, () => `Agent-${Math.floor(Math.random() * 900) + 100}`),
+    winner: status === 'FINISHED' ? (Math.random() > 0.5 ? 'WEREWOLVES' : 'VILLAGERS') : undefined,
+    timestamp: Date.now() - Math.floor(Math.random() * 10000000)
+  }));
+};
+
+const mockActiveGames = generateMockGames(6, 'LIVE');
+const mockReplays = generateMockGames(8, 'FINISHED');
+
+// >>> NEW FEATURE: API Endpoint to fetch lists <<<
+export const getGameList = (type: 'spectator' | 'replay'): Promise<GameMeta[]> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(type === 'spectator' ? mockActiveGames : mockReplays);
+    }, 300); // Simulate network delay
+  });
 };
 
 // Initial State
@@ -82,10 +107,18 @@ const addLog = (content: string, type: LogEntry['type'], speakerId?: number) => 
 };
 
 // Simulation Logic
-export const startGameLoop = () => {
-  if (intervalId) return;
+// >>> UPDATE: Added gameId parameter to simulate joining a specific room <<<
+export const startGameLoop = (gameId?: string) => {
+  if (intervalId) clearInterval(intervalId); // Ensure only one loop runs
+  
+  // In a real app, gameId would fetch specific state. 
+  // Here we just restart the mock with new random names
+  if (gameId) {
+     resetGame(false); // Reset but don't clear interval yet as we are about to start
+  }
 
-  addLog("Game Initialized. Day 1 begins.", "system");
+  addLog(`Connected to Game Server...`, "system");
+  addLog(gameId ? `Joined Room: ${gameId}` : "Game Initialized.", "system");
   
   intervalId = setInterval(() => {
     if (currentState.winner) {
@@ -162,7 +195,7 @@ const advancePhase = () => {
     broadcast();
 };
 
-export const resetGame = () => {
+export const resetGame = (isHuman: boolean = false) => {
   clearInterval(intervalId);
   intervalId = null;
   currentState = {
